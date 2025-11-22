@@ -255,6 +255,8 @@ export async function handler(event, context) {
         if(isNaN(Number(assignmentId))) continue;
         const modelResult = await invokeModelEndpoint(assignmentText, assignmentId, maxId+1);
 
+        fs.writeFile(`.env`, `ANALYTICSID=${maxId+1}`);
+
         // validateDynamoDBStructure(modelResult);
 
         try {

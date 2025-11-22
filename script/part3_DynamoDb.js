@@ -1,4 +1,7 @@
 import {DynamoDBClient, PutItemCommand, ScanCommand} from "@aws-sdk/client-dynamodb";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Initialize AWS clients
 const dynamodb = new DynamoDBClient({ region: 'us-east-1' });
@@ -161,7 +164,7 @@ async function uploadAnalyticsSummary(summary, dynamodb, summaryTableName) {
     try {
         // Convert plain JS object to DynamoDB format
         const dynamoDBItem = toDynamoDBFormat(summary);
-        
+        console.log(dynamoDBItem);
         const command = new PutItemCommand({
             TableName: summaryTableName,
             Item: dynamoDBItem
@@ -176,10 +179,9 @@ async function uploadAnalyticsSummary(summary, dynamodb, summaryTableName) {
     }
 }
 
-generateAnalyticsSummary(1)
 
 async function main(){
-    let analyticsId = 1;
+    let analyticsId = Number(process.env.ANALYTICSID);
     const summary = await generateAnalyticsSummary(analyticsId);
     await uploadAnalyticsSummary(summary, dynamodb, "analysis_data");
 }
