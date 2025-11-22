@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.936.0",
+    "@aws-sdk/client-ec2": "^3.938.0",
     "@aws-sdk/client-s3": "^3.933.0",
     "@aws-sdk/client-sagemaker": "^3.934.0",
     "@aws-sdk/client-sagemaker-runtime": "^3.934.0",
