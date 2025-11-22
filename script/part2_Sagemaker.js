@@ -1,6 +1,7 @@
 import {DynamoDBClient, PutItemCommand, ScanCommand} from "@aws-sdk/client-dynamodb";
 import fs from 'fs';
 import  path from 'path';
+import axios from 'axios';
 
 // Initialize AWS clients
 const dynamodb = new DynamoDBClient({ region: 'us-east-1' });
@@ -57,11 +58,8 @@ function normalizeForOneLine(text) {
 
 async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
   try {
-    
     const cleaned = sanitizeText(assignmentText);
     const oneLineText = normalizeForOneLine(cleaned);
-
-    // Optional: add LLM safety wrapper
     const safeText = `<<RAW_TEXT_START>>${oneLineText}<<RAW_TEXT_END>>`;
 
     console.log(`Calling Lambda for assignment (length: ${safeText.length})`);
@@ -72,31 +70,49 @@ async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
       analyticsId
     };
 
+    const testResult = await invokeModelEndpoint("Simple test text", "999", maxId);
+    console.log("Test successful:", testResult);
 
-    console.log("Payload being sent to Lambda:", payload);
+    console.log("Payload being sent to Lambda:", testResult);
 
-    const response = await fetch("https://ph7qz98inj.execute-api.us-east-1.amazonaws.com/aithentic/sagemaker", {
-      method: "POST",
+    const response = axios.post("https://ph7qz98inj.execute-api.us-east-1.amazonaws.com/aithentic/sagemaker", payload, {
       headers: {
         "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
+      }
     });
 
     const raw = await response.text();
     console.log("Lambda raw response:", raw);
+    console.log("Lambda HTTP status:", response.status);
+
+    // Check for HTTP error status
+    if (!response.ok) {
+      throw new Error(`Lambda returned HTTP ${response.status}: ${raw}`);
+    }
 
     let parsed;
 
     try {
-        const arr = JSON.parse(raw);
+      // First, parse the outer JSON response
+      const arr = JSON.parse(raw);
 
-        // arr[0].generated_text is a STRING containing JSON
-        parsed = JSON.parse(arr[0].generated_text);
+      // Validate that we got an array with at least one element
+      if (!Array.isArray(arr) || arr.length === 0) {
+        throw new Error(`Expected array response from Lambda, got: ${typeof arr}`);
+      }
 
-    } catch (err) {
-        console.error("Failed to parse Lambda output:", err, "RAW:", raw);
-        throw err;
+      // Validate that the first element has generated_text
+      if (!arr[0].generated_text) {
+        throw new Error(`Lambda response missing 'generated_text' field. Got: ${JSON.stringify(arr[0])}`);
+      }
+
+      // arr[0].generated_text is a STRING containing JSON
+      parsed = JSON.parse(arr[0].generated_text);
+
+    } catch (parseErr) {
+      console.error("Failed to parse Lambda output:", parseErr.message);
+      console.error("RAW response was:", raw);
+      throw parseErr;
     }
 
     console.log("Final parsed model result:", parsed);
@@ -107,7 +123,6 @@ async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
     throw error;
   }
 }
-
 
 /**
  * Validate DynamoDB JSON
