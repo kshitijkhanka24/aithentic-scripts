@@ -1,0 +1,456 @@
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+Introduction
+In this lab, we explore the concept of fine-grained access control in AWS
+Identity
+
+and
+
+Access
+
+Management
+
+(IAM).
+
+By
+
+implementing
+
+selective
+
+permissions on Amazon EC2, we ensure that users have only the necessary
+privileges required for their tasks, reducing the risk of accidental or
+unauthorized actions.
+
+Objectives
+1. Create a user ec2_operator with restricted permissions.
+2. Attach a custom policy that allows starting and stopping EC2 instances but
+explicitly denies terminating them.
+3. Verify access by logging in as ec2_operator and testing the allowed and denied
+actions.
+4. Understand how fine-grained permissions enhance resource protection in
+AWS.
+
+PRN: 20230802236
+
+10
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+Architecture Diagram
+
+PRN: 20230802236
+
+11
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+Procedure:
+1. Creating User
+
+
+Go to IAM Dashboard > Users > Create User.
+
+
+
+User name: ec2_operator, Check “Provide access to AWS Management
+Console”, User Type: IAM user, Check “User must create a new password
+at next sign-in”
+
+PRN: 20230802236
+
+12
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+Set Permissions: We will attach later, Review and Create User.
+
+PRN: 20230802236
+
+13
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+2. Create a custom Policy
+
+
+Go to IAM Dashboard > Policies > Create Policy
+
+
+
+We create a policy that gives granular access to user, here user should
+be able to Start and Stop EC2 instance but not Terminate it.
+
+
+
+In policy editor, Under Visual mode, Select Service: EC2, Effect: Allow.
+Actions Allowed: Under Write Actions > StartInstances, StopInstances,
+DescribeInstances . Resources: All Resources.
+
+
+
+AWS has created granular permissions spread across List, Read, Write,
+Permission Management and Tagging. It also allows us to select
+resources on which this policy is applicable.
+
+
+
+After selecting permissions, we can choose whether to allow or deny it.
+
+
+
+So in the first half, we allowed 2 actions, here we want to deny an
+action. Click on Add More Permissions, Select Service: EC2, Effect: Deny.
+Actions Denied: TerminateInstances, Resources: All Resources.
+
+PRN: 20230802236
+
+14
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+JSON view of our Policy:
+
+PRN: 20230802236
+
+15
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+
+
+Visual Editor view of our Policy:
+
+
+
+Go to Review & Create, Assign a Policy name and description.
+
+PRN: 20230802236
+
+16
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+Create Policy.
+
+3. Attaching Custom Policy to User
+
+
+Go to IAM Dashboard > User > Click on ec2_operator > Add Permission >
+Attach Policies Directly
+PRN: 20230802236
+
+17
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+
+
+On Filter Type: Customer Managed > Select our Custom Policy:
+CustomEC2Policy > Next > Add Permissions.
+
+
+
+Finally, the ec2_operator should look like this.
+
+PRN: 20230802236
+
+18
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+4. Testing our granular policy
+
+
+Log in as ec2_operator > Go To EC2 Dashboard > Launch Instance with
+default settings.
+
+
+
+Launch EC2 with default settings.
+
+PRN: 20230802236
+
+19
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+
+
+Now, Test whether user can Stop running instance. Select instance >
+Instance State > Stop Instance
+
+
+
+Now, Test whether user can Terminate an instance. Select instance >
+Instance State > Terminate Instance
+
+PRN: 20230802236
+
+20
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+Since, we are not allowed to Terminate Instance, AWS throws us an
+error when terminating it.
+
+PRN: 20230802236
+
+21
+
+School of Computer Science, Engineering and
+Applications(SCSEA)
+B.Tech TY (CCSA)
+Subject : Fundamentals of Cloud Computing (P)
+Name of the
+Student:
+Title of Practical :
+Faculty Name:
+
+Kshitij Khanka
+
+PRN
+
+20230802236
+
+Implementing Fine-Grained Control on EC2
+Start/Stop/Terminate Actions
+Sign:
+Dr. Swapnil Waghmare
+
+Conclusion
+This lab demonstrated how fine-grained IAM policies can precisely control
+user actions on EC2 instances. By granting start and stop permissions while
+denying termination, we successfully prevented accidental deletion of critical
+resources. This exercise highlights the importance of implementing leastprivilege access to maintain both security and operational reliability in cloud
+environments.
+
+PRN: 20230802236
+
+22
+
+

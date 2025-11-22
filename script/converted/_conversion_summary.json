@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-11-22T06:15:51.585Z",
+  "totalFiles": 2,
+  "successfulConversions": 2,
+  "files": [
+    {
+      "originalFile": "20230802240.pdf",
+      "textFile": "20230802240.txt",
+      "textPath": "converted/20230802240.txt",
+      "characterCount": 952
+    },
+    {
+      "originalFile": "assignment.pdf",
+      "textFile": "assignment.txt",
+      "textPath": "converted/assignment.txt",
+      "characterCount": 7600
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+HAND CRICKET AI – Q-LEARNING PROJECT
+A Reinforcement Learning project where an AI learns to play Hand Cricket using Q-Learning.
+================================================================================
+
+OVERVIEW
+This project implements an interactive Hand-Cricket game with both AI and human gameplay modes.
+The AI uses a tabular Q-learning algorithm to learn batting and bowling strategies by playing simulated matches
+and updating its Q-table.
+Features include:
+Coin toss system
+Multi-wicket cricket logic
+AI learns from human patterns
+Training visualization (Matplotlib)
+Full 2-innings match system
+================================================================================
+
+GAME MODES
+Training Mode:
+AI trains for 100 simulated matches each (batting and bowling).
+Learns against biased and random throw patterns.
+Interactive Play Mode:
+Human vs AI full match.
+Toss, innings, scoring, wickets.
+AI learns from your playing style after
+
+

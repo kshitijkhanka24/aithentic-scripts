@@ -57,70 +57,102 @@ function normalizeForOneLine(text) {
 }
 
 async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
-  try {
-    const cleaned = sanitizeText(assignmentText);
-    const oneLineText = normalizeForOneLine(cleaned);
-    const safeText = `<<RAW_TEXT_START>>${oneLineText}<<RAW_TEXT_END>>`;
-
-    console.log(`Calling Lambda for assignment (length: ${safeText.length})`);
-
-    const payload = {
-      assignmentText: safeText,
-      assignmentId,
-      analyticsId
-    };
-
-    const testResult = await invokeModelEndpoint("Simple test text", "999", maxId);
-    console.log("Test successful:", testResult);
-
-    console.log("Payload being sent to Lambda:", testResult);
-
-    const response = axios.post("https://ph7qz98inj.execute-api.us-east-1.amazonaws.com/aithentic/sagemaker", payload, {
-      headers: {
-        "Content-Type": "application/json"
-      }
-    });
-
-    const raw = await response.text();
-    console.log("Lambda raw response:", raw);
-    console.log("Lambda HTTP status:", response.status);
-
-    // Check for HTTP error status
-    if (!response.ok) {
-      throw new Error(`Lambda returned HTTP ${response.status}: ${raw}`);
-    }
-
-    let parsed;
-
+  const MAX_RETRIES = 3;
+  const TIMEOUT_MS = 60000; // 60 second timeout
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      // First, parse the outer JSON response
-      const arr = JSON.parse(raw);
+      const cleaned = sanitizeText(assignmentText);
+      const oneLineText = normalizeForOneLine(cleaned);
+      const safeText = `<<RAW_TEXT_START>>${oneLineText}<<RAW_TEXT_END>>`;
 
-      // Validate that we got an array with at least one element
-      if (!Array.isArray(arr) || arr.length === 0) {
-        throw new Error(`Expected array response from Lambda, got: ${typeof arr}`);
+      console.log(`[Attempt ${attempt}/${MAX_RETRIES}] Calling Lambda for assignment (length: ${safeText.length})`);
+
+      const payload = {
+        assignmentText: safeText,
+        assignmentId,
+        analyticsId
+      };
+
+      console.log("Payload being sent to Lambda:", payload);
+
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+      try {
+        const response = await axios.post(
+          "https://ph7qz98inj.execute-api.us-east-1.amazonaws.com/aithentic/sagemaker",
+          payload,
+          {
+            headers: {
+              "Content-Type": "application/json"
+            },
+            timeout: TIMEOUT_MS
+          }
+        );
+
+        clearTimeout(timeoutId);
+        console.log("Lambda HTTP status:", response.status);
+        const raw = response.data;
+        console.log("Lambda raw response:", JSON.stringify(raw).substring(0, 500)); // Log first 500 chars
+
+        // Check for HTTP error status
+        if (response.status >= 400) {
+          throw new Error(`Lambda returned HTTP ${response.status}: ${JSON.stringify(raw)}`);
+        }
+
+        let parsed;
+
+        try {
+          // Parse the response (axios auto-parses JSON, so raw is already an object)
+          const result = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+          // Check if it's the new format (direct DynamoDB JSON with N, S, M fields)
+          if (result.analyticsId && result.analyticsId.N !== undefined) {
+            console.log("Detected DynamoDB format response");
+            parsed = result; // Already in the correct format for DynamoDB
+          } 
+          // Check if it's the old SageMaker array format
+          else if (Array.isArray(result) && result.length > 0 && result[0].generated_text) {
+            console.log("Detected SageMaker array format response");
+            parsed = JSON.parse(result[0].generated_text);
+          } 
+          else {
+            throw new Error(`Unknown response format. Expected DynamoDB JSON or SageMaker array. Got: ${JSON.stringify(result).substring(0, 200)}`);
+          }
+
+        } catch (parseErr) {
+          console.error("Failed to parse Lambda output:", parseErr.message);
+          console.error("RAW response was:", JSON.stringify(raw).substring(0, 500));
+          throw parseErr;
+        }
+
+        console.log("Final parsed model result:", parsed);
+        return parsed;
+
+      } finally {
+        clearTimeout(timeoutId);
       }
 
-      // Validate that the first element has generated_text
-      if (!arr[0].generated_text) {
-        throw new Error(`Lambda response missing 'generated_text' field. Got: ${JSON.stringify(arr[0])}`);
+    } catch (error) {
+      console.error(`[Attempt ${attempt}/${MAX_RETRIES}] Lambda invocation error:`, error.message);
+
+      // If it's a 502 or timeout, retry
+      if (attempt < MAX_RETRIES && (error.response?.status === 502 || error.code === 'ECONNABORTED')) {
+        const backoffMs = 1000 * attempt; // 1s, 2s, 3s
+        console.log(`Retrying in ${backoffMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        continue;
       }
 
-      // arr[0].generated_text is a STRING containing JSON
-      parsed = JSON.parse(arr[0].generated_text);
+      // If this is the last attempt, throw
+      if (attempt === MAX_RETRIES) {
+        throw new Error(`Lambda invocation failed after ${MAX_RETRIES} attempts: ${error.message}`);
+      }
 
-    } catch (parseErr) {
-      console.error("Failed to parse Lambda output:", parseErr.message);
-      console.error("RAW response was:", raw);
-      throw parseErr;
+      throw error;
     }
-
-    console.log("Final parsed model result:", parsed);
-    return parsed;
-
-  } catch (error) {
-    console.error("Lambda invocation error:", error);
-    throw error;
   }
 }
 
