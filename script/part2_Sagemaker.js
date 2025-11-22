@@ -1,100 +1,18 @@
 import {DynamoDBClient, PutItemCommand, ScanCommand} from "@aws-sdk/client-dynamodb";
-import {SageMakerRuntimeClient, InvokeEndpointCommand} from "@aws-sdk/client-sagemaker-runtime";
 import fs from 'fs';
 import  path from 'path';
 
 // Initialize AWS clients
 const dynamodb = new DynamoDBClient({ region: 'us-east-1' });
-const sagemakerRuntime = new SageMakerRuntimeClient({ region: 'us-east-1' });
 
 const fsp = fs.promises;
 
 const CONFIG = {
   DYNAMODB_TABLE: 'assignment_analysis_data',
-  SAGEMAKER_ENDPOINT: 'aithentic-kmeans-endpoint',
   REGION: 'us-east-1',
   LOCAL_CONVERTED_DIR: './converted'
 };
 
-const SYSTEM_PROMPT = `You are an academic integrity evaluator.
-
-You will receive:
-1. The full assignment content (raw text).
-2. assignmentId → extracted from the filename (string without extension).
-3. analyticsId → for now always “12345”.
-
-These are injected into the prompt automatically by the calling application.
-
-Your job:
-Analyze the assignment for plagiarism and AI-generated content, calculate deductions, and respond ONLY with a DynamoDB-compatible JSON object in the exact structure below.
-
---------------------------
-DECISION RULES
---------------------------
-• Use the provided analyticsId (N) and assignmentId (N) in the output JSON.
-
-• PLAGIARISM DEDUCTIONS
-  - If plagiarism ≥ 85% → gradeReceived = 0
-  - If plagiarism ≥ 70% → subtract 30 points
-  - If plagiarism ≥ 50% → subtract 20 points
-
-• AI-GENERATED CONTENT DEDUCTIONS
-  - If AI ≥ 90% → gradeReceived = 0
-  - If AI ≥ 70% → subtract 30 points
-  - If AI ≥ 50% → subtract 15 points
-
-• QUALITY FLAGS
-  - “Minor scope of improvement” → gradeReceived = 95
-  - “Major scope of improvement” → gradeReceived = 85
-
-• If content is fully correct with no deductions → gradeReceived = 100.
-
-• Output whether AI was used (BOOL) and % AI used.
-  Include a list of **starting paragraph line numbers** where AI-generated content appears.
-
-• Output whether plagiarism occurred (BOOL) and % plagiarised.
-  Include a list of **starting line numbers** where plagiarism was detected.
-
-• Provide:
-  - gradeReasoning → max 60 words
-  - remarks → max 60 words
-
-• Include 4-5 specific suspicious-looking words from the assignment that seem AI-generated.
-
---------------------------
-OUTPUT FORMAT (MANDATORY)
---------------------------
-Reply ONLY with a DynamoDB-compatible JSON object using this exact structure:
-
-{
-  "analyticsId": {"N": "<analyticsId>"},
-  "assignmentId": {"N": "<assignmentId>"},
-  "gradeReceived": {"N": "<grade>"},
-
-  "aiGeneratedAnalytics": {"M": {
-    "isAIUsed": {"BOOL": <true/false>},
-    "percentageOfAIUsed": {"N": "<percent>"},
-    "highlightedAreaOfAIUse": {"L": [
-      {"S": "<starting line of AI paragraph>"},
-      {"S": "<starting line of another AI paragraph>"}
-    ]}
-  }},
-
-  "plagarismAnalytics": {"M": {
-    "isPlagarised": {"BOOL": <true/false>},
-    "plagarisedPercentage": {"N": "<percent>"},
-    "plagarisedFrom": {"L": [
-      {"S": "<starting line of plagiarised section>"},
-      {"S": "<starting line of another plagiarised section>"}
-    ]}
-  }},
-
-  "gradeReasoning": {"S": "<≤60 words>"},
-  "remarks": {"S": "<≤60 words>"}
-}
-
-You must always respond with valid DynamoDB JSON. No extra text, no markdown.
-`;
 
 /**
  * Read assignment from local EC2 /converted directory
@@ -115,57 +33,47 @@ async function readAssignmentFromLocal(filename) {
 /**
  * Invoke SageMaker endpoint
  */
+/**
+ * Invoke Lambda via API Gateway instead of SageMaker directly
+ */
 async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
   try {
-    console.log(`Invoking SageMaker for assignmentId: ${assignmentId} with analyticsId: ${analyticsId}`);
-    console.log(`Assignment text length: ${assignmentText.length} characters`);
+    console.log(`Calling Lambda for assignment ${assignmentId}`);
 
     const payload = {
-      prompt: SYSTEM_PROMPT,
-      assignment_content: assignmentText,
-      assignment_id: assignmentId,
-      analytics_id: analyticsId
+      assignmentText,
+      assignmentId,
+      analyticsId
     };
 
-    console.log(`Payload size: ${JSON.stringify(payload).length} bytes`);
+    console.log("Payload being sent to Lambda:", payload);
 
-    const command = new InvokeEndpointCommand({
-      EndpointName: CONFIG.SAGEMAKER_ENDPOINT,
-      Body: JSON.stringify(payload),
-      ContentType: "application/json",
-      Accept: "application/json"
+    const response = await fetch("https://ph7qz98inj.execute-api.us-east-1.amazonaws.com/aithentic/sagemaker", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
     });
 
-    const response = await sagemakerRuntime.send(command);
+    const text = await response.text();
+    console.log("Lambda raw response:", text);
 
-    // ⭐ THIS IS WHERE YOU PUT THE DECODE LINE
-    const raw = new TextDecoder("utf-8").decode(response.Body);
-    console.log("Raw SageMaker response:", raw);
+    if (!response.ok) {
+      throw new Error(`Lambda returned HTTP ${response.status}: ${text}`);
+    }
 
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(text);
+    console.log("Final parsed model result:", parsed);
+
     return parsed;
 
   } catch (error) {
-    console.error("SageMaker invocation error:", error);
-    
-    // Log more details for debugging
-    if (error.$metadata) {
-      console.error("HTTP Status Code:", error.$metadata.httpStatusCode);
-      console.error("Request ID:", error.$metadata.requestId);
-    }
-    
-    if (error.OriginalStatusCode) {
-      console.error("Original Error Code:", error.OriginalStatusCode);
-      console.error("Original Message:", error.OriginalMessage);
-    }
-    
-    if (error.LogStreamArn) {
-      console.error("CloudWatch Logs:", error.LogStreamArn);
-    }
-    
+    console.error("Lambda invocation error:", error);
     throw error;
   }
 }
+
 
 /**
  * Validate DynamoDB JSON
@@ -339,44 +247,3 @@ export {
   saveAnalysisToDynamoDB,
   validateDynamoDBStructure
 };
-
-/**
- * TROUBLESHOOTING GUIDE FOR SAGEMAKER 500 ERRORS
- * 
- * If you see "ModelError: Received server error (500)", check:
- * 
- * 1. Endpoint Status:
- *    - AWS Console > SageMaker > Endpoints > aithentic-kmeans-endpoint
- *    - Ensure status is "InService" (not "Creating", "Failed", "Updating", etc.)
- * 
- * 2. CloudWatch Logs:
- *    - Check the log stream provided in the error message
- *    - Look for specific error messages from your model code
- * 
- * 3. Model Container Issues:
- *    - The inference container may have crashed or exited
- *    - Check if the Docker container is still running
- *    - Verify model artifacts are present in the container
- * 
- * 4. Payload Issues:
- *    - Ensure the request payload format matches the model's expectations
- *    - Check ContentType and Accept headers are correct (application/json)
- *    - Validate JSON payload doesn't have parsing errors
- * 
- * 5. Memory/Resource Issues:
- *    - The instance may be out of memory
- *    - Check instance type and available resources in CloudWatch
- *    - Consider upgrading to a larger instance type
- * 
- * 6. Endpoint Configuration:
- *    - Verify the endpoint is correctly configured for your model
- *    - Check environment variables are set in the container
- *    - Ensure dependencies are installed in the container
- * 
- * Next Steps:
- *    1. Check CloudWatch logs (link provided in error)
- *    2. Consider restarting the endpoint
- *    3. If logs show model errors, fix the model and redeploy
- *    4. Test with a simple payload first (e.g., small text)
- *
- */
