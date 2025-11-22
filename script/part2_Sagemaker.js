@@ -47,9 +47,10 @@ function sanitizeText(text) {
 async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
   try {
     console.log(`Calling Lambda for assignment ${assignmentId}`);
+    const trimmedText = sanitizeText(assignmentText).slice(0, 2000);
 
     const payload = {
-      assignmentText: sanitizeText(assignmentText),
+      assignmentText: trimmedText,
       assignmentId,
       analyticsId
     };
