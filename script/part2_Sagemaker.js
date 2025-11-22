@@ -43,17 +43,38 @@ function sanitizeText(text) {
     .replace(/\r/g, '\n')        // normalize CR
     .replace(/[^\x09\x0A\x0D\x20-\x7E\xa0-\uFFFF]/g, ''); // remove weird control chars
 }
+/**
+ * Convert text into a single-line JSON-safe string
+ */
+function normalizeForOneLine(text) {
+  return text
+    .replace(/\u0000/g, '')
+    .replace(/\f/g, ' ')
+    .replace(/\r\n/g, ' ')
+    .replace(/\r/g, ' ')
+    .replace(/\n/g, ' ')
+    .replace(/\t/g, ' ')
+    .replace(/\s\s+/g, ' ')   // collapse multiple spaces
+    .trim();
+}
 
 async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
   try {
-    console.log(`Calling Lambda for assignment ${assignmentId}`);
-    const trimmedText = sanitizeText(assignmentText).slice(0, 2000);
+    
+    const cleaned = sanitizeText(assignmentText);
+    const oneLineText = normalizeForOneLine(cleaned);
+
+    // Optional: add LLM safety wrapper
+    const safeText = `<<RAW_TEXT_START>> ${oneLineText} <<RAW_TEXT_END>>`;
+
+    console.log(`Calling Lambda for assignment (length: ${safeText.length})`);
 
     const payload = {
-      assignmentText: trimmedText,
+      assignmentText: safeText,
       assignmentId,
       analyticsId
     };
+
 
     console.log("Payload being sent to Lambda:", payload);
 
