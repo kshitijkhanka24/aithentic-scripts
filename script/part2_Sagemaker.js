@@ -86,16 +86,23 @@ async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
       body: JSON.stringify(payload)
     });
 
-    const text = await response.text();
-    console.log("Lambda raw response:", text);
+    const raw = await response.text();
+    console.log("Lambda raw response:", raw);
 
-    if (!response.ok) {
-      throw new Error(`Lambda returned HTTP ${response.status}: ${text}`);
+    let parsed;
+
+    try {
+        const arr = JSON.parse(raw);
+
+        // arr[0].generated_text is a STRING containing JSON
+        parsed = JSON.parse(arr[0].generated_text);
+
+    } catch (err) {
+        console.error("Failed to parse Lambda output:", err, "RAW:", raw);
+        throw err;
     }
 
-    const parsed = JSON.parse(text);
     console.log("Final parsed model result:", parsed);
-
     return parsed;
 
   } catch (error) {
