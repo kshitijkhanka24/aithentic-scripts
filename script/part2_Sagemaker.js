@@ -31,9 +31,6 @@ async function readAssignmentFromLocal(filename) {
 }
 
 /**
- * Invoke SageMaker endpoint
- */
-/**
  * Invoke Lambda via API Gateway instead of SageMaker directly
  */
 function sanitizeText(text) {
@@ -211,28 +208,7 @@ export async function handler(event, context) {
         if(isNaN(Number(assignmentId))) continue;
         const modelResult = await invokeModelEndpoint(assignmentText, assignmentId, maxId);
 
-        validateDynamoDBStructure(modelResult);
-
-        // const modelResult = {
-        //   "analyticsId": {"N": "12345"},
-        //   "assignmentId": {"N": assignmentId},
-        //   "gradeReceived": {"N": "85"},
-        //   "aiGeneratedAnalytics": {"M": {
-        //     "isAIUsed": {"BOOL": true},
-        //     "percentageOfAIUsed": {"N": "60"},
-        //     "highlightedAreaOfAIUse": {"L": [
-        //       {"S": "10"},
-        //       {"S": "25"}
-        //     ]}
-        //   }},
-        //   "plagarismAnalytics": {"M": {
-        //     "isPlagarised": {"BOOL": false},
-        //     "plagarisedPercentage": {"N": "0"},
-        //     "plagarisedFrom": {"L": []}
-        //   }},
-        //   "gradeReasoning": {"S": "The assignment shows significant AI-generated content, leading to deductions."},
-        //   "remarks": {"S": "Please ensure more original work in future submissions."}
-        // };
+        // validateDynamoDBStructure(modelResult);
 
         try {
           await saveAnalysisToDynamoDB(modelResult);
