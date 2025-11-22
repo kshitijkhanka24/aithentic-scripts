@@ -123,6 +123,7 @@ fi
 ### 6) Install project-level and per-package dependencies ###
 echo "[STEP 6] Installing project dependencies"
 cd "$PROJECT_DIR"
+git pull || echo "[INFO] Could not pull latest changes; proceeding with existing code."
 
 # Install at project root if package.json exists
 if [ -f package.json ]; then
