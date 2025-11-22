@@ -232,6 +232,13 @@ export async function handler(event, context) {
   }
 
   console.log('Highest analyticsId found:', maxId);
+  fs.writeFile(`.env`, `ANALYTICSID=${maxId+1}`, (err) => {
+    if (err) {
+        console.error('Error writing .env file:', err);
+    } else {
+        console.log('.env file updated successfully with new ANALYTICSID');
+    }
+});
 
   try {
     const files = await fsp.readdir(CONFIG.LOCAL_CONVERTED_DIR);
@@ -255,7 +262,7 @@ export async function handler(event, context) {
         if(isNaN(Number(assignmentId))) continue;
         const modelResult = await invokeModelEndpoint(assignmentText, assignmentId, maxId+1);
 
-        fs.writeFile(`.env`, `ANALYTICSID=${maxId+1}`);
+        
 
         // validateDynamoDBStructure(modelResult);
 
