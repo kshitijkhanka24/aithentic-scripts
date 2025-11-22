@@ -1,0 +1,39 @@
+{
+  "name": "aithentic-assignment-processor",
+  "version": "1.0.0",
+  "description": "Fetch PDF assignments from AWS S3, download them locally, and convert to plain text files.",
+  "main": "script.js",
+  "type": "module",
+  "scripts": {
+    "start": "node script.js",
+    "start:debug": "S3_DIAGNOSE=true node script.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "echo '⚠️  IMPORTANT: Before running this script, install system dependency: poppler-utils. See README.md for instructions.'"
+  },
+  "keywords": [
+    "aws",
+    "s3",
+    "pdf",
+    "text-extraction",
+    "assignment",
+    "grading"
+  ],
+  "author": "Aithentic",
+  "license": "ISC",
+  "packageManager": "pnpm@10.14.0",
+  "systemDependencies": {
+    "poppler-utils": "Required for pdftotext fallback converter. Install: sudo apt-get install poppler-utils (Ubuntu/Debian) or brew install poppler (macOS)"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.936.0",
+    "@aws-sdk/client-s3": "^3.933.0",
+    "@aws-sdk/client-sagemaker": "^3.934.0",
+    "@aws-sdk/client-sagemaker-runtime": "^3.934.0",
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^17.2.3",
+    "pdf-parse": "^2.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
