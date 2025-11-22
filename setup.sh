@@ -2,6 +2,12 @@
 # setup.sh - Reordered and idempotent setup script for Aithentic
 set -euo pipefail
 
+# ===== ADD THIS SECTION HERE =====
+# Ensure HOME is set (important when running as root via cloud-init)
+export HOME="${HOME:-/root}"
+export PATH="/root/.nvm/versions/node/*/bin:$PATH"
+# ===== END OF NEW SECTION =====
+
 ### Configuration (override with env vars) ###
 REPO_URL="${REPO_URL:-https://github.com/kshitijkhanka24/aithentic-scripts.git}"                # optional: git URL to clone if repo not present
 PROJECT_DIR="${PROJECT_DIR:-/home/ec2-user/aithentic-scripts}"  # target project path on the instance
