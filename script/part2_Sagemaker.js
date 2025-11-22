@@ -65,7 +65,7 @@ async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
     const oneLineText = normalizeForOneLine(cleaned);
 
     // Optional: add LLM safety wrapper
-    const safeText = `<<RAW_TEXT_START>> ${oneLineText} <<RAW_TEXT_END>>`;
+    const safeText = `<<RAW_TEXT_START>>${oneLineText}<<RAW_TEXT_END>>`;
 
     console.log(`Calling Lambda for assignment (length: ${safeText.length})`);
 
