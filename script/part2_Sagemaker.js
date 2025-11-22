@@ -36,12 +36,20 @@ async function readAssignmentFromLocal(filename) {
 /**
  * Invoke Lambda via API Gateway instead of SageMaker directly
  */
+function sanitizeText(text) {
+  return text
+    .replace(/\u0000/g, '')      // remove null bytes
+    .replace(/\f/g, '\n')        // convert form-feed to newline
+    .replace(/\r/g, '\n')        // normalize CR
+    .replace(/[^\x09\x0A\x0D\x20-\x7E\xa0-\uFFFF]/g, ''); // remove weird control chars
+}
+
 async function invokeModelEndpoint(assignmentText, assignmentId, analyticsId) {
   try {
     console.log(`Calling Lambda for assignment ${assignmentId}`);
 
     const payload = {
-      assignmentText,
+      assignmentText: sanitizeText(assignmentText),
       assignmentId,
       analyticsId
     };
