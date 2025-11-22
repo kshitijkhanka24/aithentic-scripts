@@ -253,7 +253,7 @@ export async function handler(event, context) {
         console.log(`\n--- Processing ${file} ---`);
         const { assignmentText, assignmentId } = await readAssignmentFromLocal(file);
         if(isNaN(Number(assignmentId))) continue;
-        const modelResult = await invokeModelEndpoint(assignmentText, assignmentId, maxId);
+        const modelResult = await invokeModelEndpoint(assignmentText, assignmentId, maxId+1);
 
         // validateDynamoDBStructure(modelResult);
 
